@@ -2,19 +2,22 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Simulador Agronomía y Biología</title>
 <style>
   :root{
     --bg:#0d1117; --card:#161b22; --border:#2a2f3a;
     --accent:#2ecc71; --accent2:#3b82f6; --red:#ef4444; --text:#e6edf3; --muted:#8b949e;
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
   body{
     margin:0; font-family:'Segoe UI', Roboto, Arial, sans-serif;
     background:linear-gradient(160deg,#0d1117,#131a24);
-    color:var(--text); min-height:100vh; padding:24px 12px;
+    color:var(--text); min-height:100vh; padding:20px 14px;
+    overflow-x:hidden;
   }
-  .wrap{max-width:720px; margin:0 auto;}
+  .wrap{max-width:720px; margin:0 auto; width:100%;}
   h1{font-size:1.4rem; text-align:center; margin-bottom:4px; color:#fff;}
   .subtitle{text-align:center; color:var(--muted); font-size:.9rem; margin-bottom:20px;}
   .card{
@@ -22,8 +25,18 @@
     padding:20px; margin-bottom:16px; box-shadow:0 4px 20px rgba(0,0,0,.3);
   }
   .progress-bar{
-    width:100%; height:8px; background:#21262d; border-radius:5px; overflow:hidden; margin-bottom:20px;
+    width:100%; height:8px; background:#21262d; border-radius:5px; overflow:hidden; margin-bottom:14px;
   }
+  .live-stats{
+    display:flex; justify-content:center; gap:14px; margin-bottom:16px;
+  }
+  .stat-pill{
+    display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px;
+    font-size:.85rem; font-weight:700; border:1px solid var(--border); background:#161b22;
+  }
+  .stat-pill.correct{color:var(--accent); border-color:#1f5c3d;}
+  .stat-pill.incorrect{color:var(--red); border-color:#5c2323;}
+  .stat-pill .dot{font-size:1rem;}
   .progress-fill{
     height:100%; background:linear-gradient(90deg,var(--accent2),var(--accent));
     width:0%; transition:width .3s ease;
@@ -33,8 +46,9 @@
   .options{display:flex; flex-direction:column; gap:10px;}
   .option{
     background:#1c2330; border:1px solid var(--border); border-radius:10px;
-    padding:12px 14px; cursor:pointer; transition:.15s; font-size:.95rem; line-height:1.4;
-    display:flex; gap:10px; align-items:flex-start;
+    padding:13px 14px; cursor:pointer; transition:.15s; font-size:.95rem; line-height:1.45;
+    display:flex; gap:10px; align-items:flex-start; min-height:44px;
+    -webkit-user-select:none; user-select:none;
   }
   .option:hover{border-color:var(--accent2); background:#212a3a;}
   .option.selected{border-color:var(--accent2); background:#1a2a42;}
@@ -53,13 +67,13 @@
   .feedback.bad{background:#3a1418; color:#ffb3b3; border:1px solid var(--red);}
   .nav{display:flex; justify-content:flex-end; margin-top:18px;}
   button{
-    background:var(--accent2); color:#fff; border:none; padding:11px 22px;
+    background:var(--accent2); color:#fff; border:none; padding:13px 22px;
     border-radius:9px; font-size:.95rem; cursor:pointer; font-weight:600;
-    transition:.15s;
+    transition:.15s; min-height:46px; -webkit-tap-highlight-color:transparent;
   }
   button:hover{opacity:.85;}
   button:disabled{opacity:.4; cursor:not-allowed;}
-  #startBtn{display:block; margin:20px auto 0; background:var(--accent);}
+  #startBtn{display:block; margin:20px auto 0; background:var(--accent); width:100%; max-width:320px;}
   .result-title{font-size:1.6rem; text-align:center; margin-bottom:6px;}
   .score{font-size:2.6rem; text-align:center; font-weight:800; margin:10px 0; color:var(--accent);}
   .score.low{color:var(--red);}
@@ -72,8 +86,31 @@
   .review-q{font-size:.88rem; color:var(--muted); margin-bottom:4px;}
   .review-a{font-size:.92rem;}
   .center{text-align:center;}
-  #retryBtn{margin-top:20px;}
+  #retryBtn{margin-top:20px; width:100%; max-width:320px;}
   .hidden{display:none;}
+
+  @media (max-width: 480px){
+    body{padding:14px 10px;}
+    h1{font-size:1.15rem; padding:0 4px;}
+    .subtitle{font-size:.82rem; margin-bottom:16px;}
+    .card{padding:16px 14px; border-radius:12px;}
+    .qtext{font-size:1rem;}
+    .option{font-size:.9rem; padding:12px;}
+    .letter{width:22px; height:22px; font-size:.75rem;}
+    .nav{justify-content:stretch;}
+    .nav button{width:100%;}
+    .score{font-size:2.1rem;}
+    .result-title{font-size:1.3rem;}
+    .review-q{font-size:.82rem;}
+    .review-a{font-size:.86rem;}
+    .live-stats{gap:8px;}
+    .stat-pill{font-size:.78rem; padding:6px 10px;}
+  }
+
+  @media (max-width: 360px){
+    h1{font-size:1.05rem;}
+    .qtext{font-size:.95rem;}
+  }
 </style>
 </head>
 <body>
@@ -88,6 +125,10 @@
 
   <div id="quizArea" class="hidden">
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="live-stats">
+      <div class="stat-pill correct"><span class="dot">✅</span><span id="liveCorrect">0</span> correctas</div>
+      <div class="stat-pill incorrect"><span class="dot">❌</span><span id="liveIncorrect">0</span> incorrectas</div>
+    </div>
     <div class="card">
       <div class="qnum" id="qnum"></div>
       <div class="qtext" id="qtext"></div>
@@ -193,6 +234,7 @@ const LETTERS = ['A','B','C','D'];
 let quiz = [];
 let current = 0;
 let score = 0;
+let wrongCount = 0;
 let answered = false;
 let review = [];
 
@@ -219,11 +261,17 @@ function buildQuiz(){
 
 function startQuiz(){
   buildQuiz();
-  current = 0; score = 0; review = [];
+  current = 0; score = 0; wrongCount = 0; review = [];
   document.getElementById('intro').classList.add('hidden');
   document.getElementById('resultArea').classList.add('hidden');
   document.getElementById('quizArea').classList.remove('hidden');
+  updateLiveStats();
   renderQuestion();
+}
+
+function updateLiveStats(){
+  document.getElementById('liveCorrect').textContent = score;
+  document.getElementById('liveIncorrect').textContent = wrongCount;
 }
 
 function renderQuestion(){
@@ -273,7 +321,8 @@ function selectOption(idx){
   fb.textContent = isCorrect
     ? '✅ ¡Correcto!'
     : `❌ Incorrecto. La respuesta correcta es: ${LETTERS[q.correct]}) ${q.options[q.correct]}`;
-  if(isCorrect) score++;
+  if(isCorrect) score++; else wrongCount++;
+  updateLiveStats();
   review.push({q:q.q, chosen:q.options[idx], correctText:q.options[q.correct], isCorrect});
   document.getElementById('nextBtn').disabled = false;
 }
